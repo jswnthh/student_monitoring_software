@@ -126,12 +126,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 STATIC_URL = '/static/'
 
-# ✅ Fix 1: Tell Django where your static files are located
-STATICFILES_DIRS = [
-    BASE_DIR / 'lateEntry' / 'static',
-]
-
-# ✅ Fix 2: Tell Django where to collect static files for deployment
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Default primary key field type
@@ -149,7 +143,7 @@ PWA_APP_ORIENTATION = 'portrait'
 PWA_APP_START_URL = '/'
 PWA_APP_ICONS = [
     {
-        'src': '/static/icons/icon_512x512.png',
+        'src': '/staticfiles/icons/icon_512x512.png',
         'sizes': '512x512'
     }
 ]
