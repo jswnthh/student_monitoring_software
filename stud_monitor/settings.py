@@ -27,6 +27,7 @@ SECRET_KEY = 'django-insecure-e8)mg*xo**^ytuef+psw79ddmvkik0@r93h_5cu7==kfriozc=
 DEBUG = True
 
 ALLOWED_HOSTS = [
+    '127.0.0.1',
     'student-monitoring-software.onrender.com',
 ]
 

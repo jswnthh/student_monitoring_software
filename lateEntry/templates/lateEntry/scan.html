@@ -15,11 +15,6 @@
 
 <body>
     <div class="container">
-        <div class="header">
-            <h1>📱 Student ID Scanner</h1>
-            <p>Scan barcodes to record student attendance</p>
-        </div>
-
         <div class="scanner-section">
             <div id="status-message"></div>
             <div class="scanner-container">
@@ -30,12 +25,12 @@
             </div>
 
             <div class="controls">
-                <button id="start-btn" class="btn">Start Scanner</button>
+                <button id="start-btn" class="font-size-large btn">Start Scanner</button>
                 <button id="stop-btn" class="btn btn-danger" disabled>Stop Scanner</button>
             </div>
 
             <div class="manual-input">
-                <h3 style="margin-bottom: 15px;">Manual Entry</h3>
+                 <h3 class="font-large" style="margin-bottom: 15px;">Manual Entry</h3>
                 <div class="input-group">
                     <input type="text" id="student-id" placeholder="Student ID">
                     <input type="text" id="student-name" placeholder="Student Name">
@@ -46,9 +41,10 @@
 
         <div class="students-section">
             <div class="students-header">
-                <h2>Recorded Students</h2>
+                <h2 class="font-large">Recorded Students</h2>
                 <div class="students-count">
-                    <span id="student-count">0</span> students
+                    <span id="student-count" class="font-large">0</span> 
+                    <h2 class="font-large">students</h2>
                 </div>
             </div>
 
