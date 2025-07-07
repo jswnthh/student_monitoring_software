@@ -4,11 +4,18 @@ class StudentScanner {
         this.isScanning = false;
         this.lastScannedCode = '';
         this.lastScanTime = 0;
+        this.stream = null;
+        this.isSamsungDevice = this.detectSamsungDevice();
 
         this.initElements();
         this.bindEvents();
         this.loadData();
         this.updateUI();
+    }
+
+    detectSamsungDevice() {
+        const userAgent = navigator.userAgent.toLowerCase();
+        return userAgent.includes('samsung') || userAgent.includes('sm-');
     }
 
     initElements() {
@@ -43,45 +50,104 @@ class StudentScanner {
         }, 3000);
     }
 
-    async startScanner() {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({
+    async getCameraConstraints() {
+        if (this.isSamsungDevice) {
+            // Samsung-specific constraints
+            return {
+                video: {
+                    facingMode: { exact: 'environment' },
+                    width: { ideal: 640, min: 320, max: 1280 },
+                    height: { ideal: 480, min: 240, max: 720 },
+                    frameRate: { ideal: 15, max: 30 }
+                },
+                audio: false
+            };
+        } else {
+            // Standard constraints for other devices
+            return {
                 video: {
                     facingMode: 'environment',
                     width: { ideal: 1280 },
                     height: { ideal: 720 }
-                }
+                },
+                audio: false
+            };
+        }
+    }
+
+    async startScanner() {
+        try {
+            this.showStatus('Starting camera...', 'info');
+            
+            const constraints = await this.getCameraConstraints();
+            
+            // Try primary constraints first
+            try {
+                this.stream = await navigator.mediaDevices.getUserMedia(constraints);
+            } catch (err) {
+                console.log('Primary constraints failed, trying fallback...');
+                // Fallback for Samsung devices
+                const fallbackConstraints = {
+                    video: {
+                        facingMode: 'environment',
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    },
+                    audio: false
+                };
+                this.stream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
+            }
+
+            this.video.srcObject = this.stream;
+            
+            // Wait for video to be ready
+            await new Promise((resolve) => {
+                this.video.onloadedmetadata = () => {
+                    this.video.play();
+                    resolve();
+                };
             });
 
-            this.video.srcObject = stream;
-            this.video.play();
-            // In startScanner()
-            document.querySelector('.laser-line').style.display = 'block';
+            // Show laser line
+            const laserLine = document.querySelector('.laser-line');
+            if (laserLine) laserLine.style.display = 'block';
 
-
-            Quagga.init({
+            // Configure QuaggaJS with Samsung-optimized settings
+            const quaggaConfig = {
                 inputStream: {
                     name: "Live",
                     type: "LiveStream",
                     target: this.video,
                     constraints: {
-                        width: 640,
-                        height: 480,
+                        width: this.isSamsungDevice ? 640 : 800,
+                        height: this.isSamsungDevice ? 480 : 600,
                         facingMode: "environment"
                     }
                 },
                 decoder: {
                     readers: [
-                        "code_128_reader", "ean_reader", "ean_8_reader",
-                        "code_39_reader", "code_39_vin_reader", "codabar_reader",
-                        "upc_reader", "upc_e_reader", "i2of5_reader"
+                        "code_128_reader",
+                        "ean_reader", 
+                        "ean_8_reader",
+                        "code_39_reader",
+                        "upc_reader"
                     ]
                 },
-                locate: true
-            }, (err) => {
+                locate: true,
+                locator: {
+                    halfSample: this.isSamsungDevice ? true : false,
+                    patchSize: this.isSamsungDevice ? "large" : "medium"
+                },
+                numOfWorkers: this.isSamsungDevice ? 1 : 2,
+                frequency: this.isSamsungDevice ? 5 : 10,
+                debug: false
+            };
+
+            Quagga.init(quaggaConfig, (err) => {
                 if (err) {
                     console.error('QuaggaJS init error:', err);
                     this.showStatus('Error starting scanner: ' + err.message, 'error');
+                    this.cleanupCamera();
                     return;
                 }
 
@@ -92,10 +158,18 @@ class StudentScanner {
                 this.showStatus('Scanner started successfully!', 'success');
             });
 
+            // Handle barcode detection
             Quagga.onDetected((data) => {
                 const code = data.codeResult.code;
                 const now = Date.now();
-                if (code === this.lastScannedCode && (now - this.lastScanTime) < 2000) return;
+                
+                // Debounce for Samsung devices (longer delay)
+                const debounceTime = this.isSamsungDevice ? 3000 : 2000;
+                
+                if (code === this.lastScannedCode && (now - this.lastScanTime) < debounceTime) {
+                    return;
+                }
+                
                 this.lastScannedCode = code;
                 this.lastScanTime = now;
                 this.processScannedCode(code);
@@ -103,22 +177,36 @@ class StudentScanner {
 
         } catch (error) {
             console.error('Camera access error:', error);
-            this.showStatus('Camera access denied or not available', 'error');
+            this.showStatus('Camera access denied or not available. Please check permissions.', 'error');
+            this.cleanupCamera();
+        }
+    }
+
+    cleanupCamera() {
+        if (this.stream) {
+            this.stream.getTracks().forEach(track => {
+                track.stop();
+            });
+            this.stream = null;
+        }
+        if (this.video.srcObject) {
+            this.video.srcObject = null;
         }
     }
 
     stopScanner() {
         if (this.isScanning) {
             Quagga.stop();
-            if (this.video.srcObject) {
-                this.video.srcObject.getTracks().forEach(track => track.stop());
-                this.video.srcObject = null;
-            }
+            this.cleanupCamera();
+            
             this.isScanning = false;
             this.startBtn.disabled = false;
             this.stopBtn.disabled = true;
-            // In stopScanner()
-            document.querySelector('.laser-line').style.display = 'none';
+            
+            // Hide laser line
+            const laserLine = document.querySelector('.laser-line');
+            if (laserLine) laserLine.style.display = 'none';
+            
             this.showStatus('Scanner stopped', 'info');
         }
     }
@@ -126,6 +214,12 @@ class StudentScanner {
     processScannedCode(code) {
         console.log("Scanned barcode:", code);
         this.showStatus(`Scanning: ${code}`, 'info');
+        
+        // Add visual feedback for Samsung devices
+        if (this.isSamsungDevice) {
+            navigator.vibrate && navigator.vibrate(100);
+        }
+        
         fetch(`/api/student/${code}/`)
             .then(response => response.json())
             .then(data => {
@@ -135,7 +229,7 @@ class StudentScanner {
                 }
 
                 const student = data.student;
-                const existing = this.students.find(s => s.id === student.id);
+                const existing = this.students.find(s => s.roll_no === student.roll_no);
                 if (existing) {
                     this.showStatus(`Student ${student.name} already recorded!`, 'info');
                     return;
@@ -197,7 +291,7 @@ class StudentScanner {
             this.studentList.innerHTML = `
                 <div class="empty-state">
                     <svg viewBox="0 0 24 24" fill="currentColor">
-                        <path d="..."/>
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
                     </svg>
                     <p>No students recorded yet</p>
                     <p>Start scanning or add students manually</p>
@@ -262,5 +356,3 @@ let scanner;
 document.addEventListener('DOMContentLoaded', () => {
     scanner = new StudentScanner();
 });
-
-

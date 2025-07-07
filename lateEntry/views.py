@@ -9,11 +9,11 @@ def scan_view(request):
     return render(request, 'lateEntry/scan.html')
 
 
-def get_student_by_hash(request, barcode_hash):
+def get_student_by_roll_no(request, roll_no):
     try:
-        student = Student.objects.get(barcode_hash=barcode_hash)
+        student = Student.objects.get(roll_no=roll_no)
         data = {
-            'id':student.barcode_hash,
+            #'id':student.barcode_hash,
             'name': student.student_name,
             'roll_no': student.roll_no,
             'DOB': student.DOB.strftime('%Y-%m-%d'),  # Format date as string
@@ -23,6 +23,7 @@ def get_student_by_hash(request, barcode_hash):
             'blood_group': student.blood_group,
             'parent_name': student.parent_name,
             'parent_no': student.parent_no,
+            'dept' : student.dept,
         }
 
         return JsonResponse({
