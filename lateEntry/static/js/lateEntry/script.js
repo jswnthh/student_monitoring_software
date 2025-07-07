@@ -25,7 +25,7 @@ class StudentScanner {
         this.studentList = document.getElementById('student-list');
         this.studentCount = document.getElementById('student-count');
         this.statusMessage = document.getElementById('status-message');
-        this.studentIdInput = document.getElementById('student-id');
+        this.studentRollInput = document.getElementById('student-roll');
         this.studentNameInput = document.getElementById('student-name');
         this.addManualBtn = document.getElementById('add-manual');
         this.exportBtn = document.getElementById('export-btn');
@@ -78,9 +78,9 @@ class StudentScanner {
     async startScanner() {
         try {
             this.showStatus('Starting camera...', 'info');
-            
+
             const constraints = await this.getCameraConstraints();
-            
+
             // Try primary constraints first
             try {
                 this.stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -99,7 +99,7 @@ class StudentScanner {
             }
 
             this.video.srcObject = this.stream;
-            
+
             // Wait for video to be ready
             await new Promise((resolve) => {
                 this.video.onloadedmetadata = () => {
@@ -127,7 +127,7 @@ class StudentScanner {
                 decoder: {
                     readers: [
                         "code_128_reader",
-                        "ean_reader", 
+                        "ean_reader",
                         "ean_8_reader",
                         "code_39_reader",
                         "upc_reader"
@@ -162,14 +162,14 @@ class StudentScanner {
             Quagga.onDetected((data) => {
                 const code = data.codeResult.code;
                 const now = Date.now();
-                
+
                 // Debounce for Samsung devices (longer delay)
                 const debounceTime = this.isSamsungDevice ? 3000 : 2000;
-                
+
                 if (code === this.lastScannedCode && (now - this.lastScanTime) < debounceTime) {
                     return;
                 }
-                
+
                 this.lastScannedCode = code;
                 this.lastScanTime = now;
                 this.processScannedCode(code);
@@ -198,15 +198,15 @@ class StudentScanner {
         if (this.isScanning) {
             Quagga.stop();
             this.cleanupCamera();
-            
+
             this.isScanning = false;
             this.startBtn.disabled = false;
             this.stopBtn.disabled = true;
-            
+
             // Hide laser line
             const laserLine = document.querySelector('.laser-line');
             if (laserLine) laserLine.style.display = 'none';
-            
+
             this.showStatus('Scanner stopped', 'info');
         }
     }
@@ -214,12 +214,12 @@ class StudentScanner {
     processScannedCode(code) {
         console.log("Scanned barcode:", code);
         this.showStatus(`Scanning: ${code}`, 'info');
-        
+
         // Add visual feedback for Samsung devices
         if (this.isSamsungDevice) {
             navigator.vibrate && navigator.vibrate(100);
         }
-        
+
         fetch(`/api/student/${code}/`)
             .then(response => response.json())
             .then(data => {
@@ -235,7 +235,7 @@ class StudentScanner {
                     return;
                 }
 
-                this.addStudent(student.id, student.name);
+                this.addStudent(student.roll_no, student.name);
                 this.showStatus(`✅ Added: ${student.name} (${student.roll_no})`, 'success');
             })
             .catch(err => {
@@ -244,9 +244,9 @@ class StudentScanner {
             });
     }
 
-    addStudent(id, name) {
+    addStudent(roll_no, name) {
         const student = {
-            id: id,
+            roll_no: roll_no,
             name: name,
             timestamp: new Date().toISOString(),
             time: new Date().toLocaleTimeString()
@@ -257,20 +257,21 @@ class StudentScanner {
         this.updateUI();
     }
 
+
     addManualStudent() {
-        const id = this.studentIdInput.value.trim();
+        const roll_no = this.studentRollInput.value.trim();
         const name = this.studentNameInput.value.trim();
-        if (!id || !name) {
-            this.showStatus('Please enter both ID and name', 'error');
+        if (!roll_no || !name) {
+            this.showStatus('Please enter both Roll no and Name', 'error');
             return;
         }
-        const existing = this.students.find(s => s.id === id);
+        const existing = this.students.find(s => s.roll_no === roll_no);
         if (existing) {
-            this.showStatus('Student with this ID already exists!', 'error');
+            this.showStatus('Student with this Roll no already exists!', 'error');
             return;
         }
-        this.addStudent(id, name);
-        this.studentIdInput.value = '';
+        this.addStudent(roll_no, name);
+        this.studentRollInput.value = '';
         this.studentNameInput.value = '';
         this.showStatus(`✅ Added: ${name}`, 'success');
     }
@@ -304,7 +305,7 @@ class StudentScanner {
                 <div class="student-item">
                     <div class="student-info">
                         <div class="student-name">${student.name}</div>
-                        <div class="student-id">ID: ${student.id}</div>
+                        <div class="student-roll">Roll No: ${student.roll_no}</div>
                         <div class="student-time">${student.time}</div>
                     </div>
                     <button class="delete-btn" onclick="scanner.removeStudent(${index})">🗑</button>
@@ -317,8 +318,8 @@ class StudentScanner {
 
     exportData() {
         const csvContent = "data:text/csv;charset=utf-8,"
-            + "Student ID,Name,Date,Time\n"
-            + this.students.map(s => `${s.id},"${s.name}",${s.timestamp.split('T')[0]},${s.time}`).join('\n');
+        "Roll No,Name,Date,Time\n"
+            + this.students.map(s => `${s.roll_no},"${s.name}",${s.timestamp.split('T')[0]},${s.time}`).join('\n');
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
