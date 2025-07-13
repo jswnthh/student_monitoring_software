@@ -1,3 +1,10 @@
+function getCSRFToken() {
+    return document.cookie
+        .split('; ')
+        .find(row => row.startsWith('csrftoken='))
+        ?.split('=')[1];
+}
+
 class StudentScanner {
     constructor() {
         this.students = [];
@@ -8,9 +15,11 @@ class StudentScanner {
         this.isSamsungDevice = this.detectSamsungDevice();
 
         this.initElements();
-        this.bindEvents();
         this.loadData();
+        // this.students.push(student);
+        this.saveData();
         this.updateUI();
+        this.bindEvents();
     }
 
     detectSamsungDevice() {
@@ -28,19 +37,19 @@ class StudentScanner {
         this.studentRollInput = document.getElementById('student-roll');
         this.studentNameInput = document.getElementById('student-name');
         this.addManualBtn = document.getElementById('add-manual');
-        this.exportBtn = document.getElementById('export-btn');
+        // this.exportBtn = document.getElementById('export-btn');
         this.clearBtn = document.getElementById('clear-btn');
+        // console.log('Dropdown button element:', this.sortDropdownBtn);
+        this.recordBtn = document.getElementById('record-btn');
     }
 
     bindEvents() {
         this.startBtn.addEventListener('click', () => this.startScanner());
         this.stopBtn.addEventListener('click', () => this.stopScanner());
         this.addManualBtn.addEventListener('click', () => this.addManualStudent());
-        this.exportBtn.addEventListener('click', () => this.exportData());
+        // this.exportBtn.addEventListener('click', () => this.exportData());
         this.clearBtn.addEventListener('click', () => this.clearData());
-        this.studentNameInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.addManualStudent();
-        });
+        this.recordBtn.addEventListener('click', () => this.recordAllLateEntries());
     }
 
     showStatus(message, type = 'info') {
@@ -258,22 +267,32 @@ class StudentScanner {
     }
 
 
-    addManualStudent() {
+    async addManualStudent() {
         const roll_no = this.studentRollInput.value.trim();
-        const name = this.studentNameInput.value.trim();
-        if (!roll_no || !name) {
-            this.showStatus('Please enter both Roll no and Name', 'error');
+        if (!roll_no) {
+            this.showStatus('Please enter Roll No', 'error');
             return;
         }
+
+        //Check with backend if student exists
+        const response = await fetch(`/api/check-student/?roll_no=${encodeURIComponent(roll_no)}`);
+        const data = await response.json();
+
+
+        if (!data.exists) {
+            this.showStatus('Student does not exist in database!', 'error');
+            return;
+        }
+        //Check if already in local list
         const existing = this.students.find(s => s.roll_no === roll_no);
         if (existing) {
-            this.showStatus('Student with this Roll no already exists!', 'error');
+            this.showStatus('Student with this Roll No already exists locally!', 'error');
             return;
         }
-        this.addStudent(roll_no, name);
+        //Proceed to add
+        this.addStudent(roll_no, data.name);
         this.studentRollInput.value = '';
-        this.studentNameInput.value = '';
-        this.showStatus(`✅ Added: ${name}`, 'success');
+        this.showStatus(`✅ Added: ${data.name}`, 'success');
     }
 
     removeStudent(index) {
@@ -285,11 +304,47 @@ class StudentScanner {
         }
     }
 
-    updateUI() {
-        this.studentCount.textContent = this.students.length;
+    async recordAllLateEntries() {
+        console.log("Recording all late entries btn works");
+        if (!this.students || this.students.length === 0) {
+            this.showStatus("No students to record!", "error");
+            return;
+        }
+        const response = await fetch("/api/record-late-entries/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCSRFToken(), // ⬅️ CSRF token is required by Django
+            },
+            body: JSON.stringify({
+                roll_nos: this.students.map(s => s.roll_no)
+            })
+        });
 
-        if (this.students.length === 0) {
-            this.studentList.innerHTML = `
+        const result = await response.json();
+        console.log("Record result:", result);
+
+        if (result.success) {
+            this.showStatus("✅ Data recorded successfully!", "success");
+        } else {
+            this.showStatus("⚠️ Some error occurred!", "error");
+        }
+
+
+        this.students = [];
+        this.saveData();
+        this.updateUI();
+        this.showStatus('All data cleared', 'info');
+    };
+
+
+
+
+updateUI() {
+    this.studentCount.textContent = this.students.length;
+
+    if (this.students.length === 0) {
+        this.studentList.innerHTML = `
                 <div class="empty-state">
                     <svg viewBox="0 0 24 24" fill="currentColor">
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
@@ -298,10 +353,10 @@ class StudentScanner {
                     <p>Start scanning or add students manually</p>
                 </div>
             `;
-            this.exportBtn.disabled = true;
-            this.clearBtn.disabled = true;
-        } else {
-            this.studentList.innerHTML = this.students.map((student, index) => `
+        // this.exportBtn.disabled = true;
+        this.clearBtn.disabled = true;
+    } else {
+        this.studentList.innerHTML = this.students.map((student, index) => `
                 <div class="student-item">
                     <div class="student-info">
                         <div class="student-name">${student.name}</div>
@@ -311,49 +366,51 @@ class StudentScanner {
                     <button class="delete-btn" onclick="scanner.removeStudent(${index})">🗑</button>
                 </div>
             `).join('');
-            this.exportBtn.disabled = false;
-            this.clearBtn.disabled = false;
-        }
-    }
-
-    exportData() {
-        const csvContent = "data:text/csv;charset=utf-8,"
-        "Roll No,Name,Date,Time\n"
-            + this.students.map(s => `${s.roll_no},"${s.name}",${s.timestamp.split('T')[0]},${s.time}`).join('\n');
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `student_attendance_${new Date().toISOString().split('T')[0]}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        this.showStatus('Data exported successfully!', 'success');
-    }
-
-    clearData() {
-        if (confirm('Are you sure you want to clear all recorded students?')) {
-            this.students = [];
-            this.saveData();
-            this.updateUI();
-            this.showStatus('All data cleared', 'info');
-        }
-    }
-
-    saveData() {
-        window.studentData = {
-            students: this.students,
-            lastUpdated: new Date().toISOString()
-        };
-    }
-
-    loadData() {
-        if (window.studentData && window.studentData.students) {
-            this.students = window.studentData.students;
-        }
+        // this.exportBtn.disabled = false;
+        this.clearBtn.disabled = false;
     }
 }
 
+// exportData() {
+//     const csvContent = "data:text/csv;charset=utf-8,"
+//     "Roll No,Name,Date,Time\n"
+//         + this.students.map(s => `${s.roll_no},"${s.name}",${s.timestamp.split('T')[0]},${s.time}`).join('\n');
+//     const encodedUri = encodeURI(csvContent);
+//     const link = document.createElement("a");
+//     link.setAttribute("href", encodedUri);
+//     link.setAttribute("download", `student_attendance_${new Date().toISOString().split('T')[0]}.csv`);
+//     document.body.appendChild(link);
+//     link.click();
+//     document.body.removeChild(link);
+//     this.showStatus('Data exported successfully!', 'success');
+// }
+
+clearData() {
+    if (confirm('Are you sure you want to clear all recorded students?')) {
+        this.students = [];
+        this.saveData();
+        this.updateUI();
+        this.showStatus('All data cleared', 'info');
+    }
+}
+
+saveData() {
+    window.studentData = {
+        students: this.students,
+        lastUpdated: new Date().toISOString()
+    };
+}
+
+loadData() {
+    if (window.studentData && window.studentData.students) {
+        this.students = window.studentData.students;
+    }
+}
+
+}
+
 let scanner;
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', function () {
     scanner = new StudentScanner();
 });
+

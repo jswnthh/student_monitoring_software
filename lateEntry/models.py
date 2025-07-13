@@ -14,4 +14,25 @@ class Student(models.Model):
 
     def __str__(self):
         return f"{self.student_name} ({self.roll_no})"
+    
+class LateArrival(models.Model):
+    student = models.ForeignKey(
+        Student,
+        to_field='roll_no',
+        on_delete=models.CASCADE,
+        related_name='late_arrivals'
+    )
+    date = models.DateField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.student.student_name} - {self.date}"
+    
+class LateSummary(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    date = models.DateField()
+    late_count = models.IntegerField(default=0)
+
+    class Meta:
+        unique_together = ('student', 'date')
+
 

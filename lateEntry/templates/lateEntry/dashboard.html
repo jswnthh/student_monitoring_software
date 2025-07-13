@@ -1,0 +1,39 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Scan ID Scanner</title>
+    <link rel="stylesheet" href="{% static 'css/lateEntry/style.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="manifest" href="{% static 'manifest.json' %}">
+    <meta name="theme-color" content="#000000" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+</head>
+
+<body>
+    <div class="container">
+        <nav class="navbar">
+            <div class="navbar-left">
+            <a href="/" class="back-btn">&#8592;</a>
+            <span class="navbar-title">Dashboard</span>
+            </div>
+
+            <div class="navbar-right">
+                <button class="dropbtn" id="sort-dropdown-btn">Sort By ▼</button>
+                <div class="dropdown-content" id="dropdownContent">
+                    <div class="sort-option" data-sort="recent">Recently Added</div>
+                    <div class="sort-option" data-sort="late_entries">Most Late</div>
+                </div>
+            </div>
+        </nav>
+        <div id="recorded-student-list" class="student-list"></div>
+
+
+    </div>
+    <script src="{% static 'js/lateEntry/script-dashboard.js' %}"></script>
+</body>
+
+</html>

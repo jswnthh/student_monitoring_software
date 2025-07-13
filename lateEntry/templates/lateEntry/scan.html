@@ -34,7 +34,6 @@
                  <h3 class="font-large" style="margin-bottom: 15px;">Manual Entry</h3>
                 <div class="input-group">
                     <input type="text" id="student-roll" placeholder="Student Roll No">
-                    <input type="text" id="student-name" placeholder="Student Name">
                 </div>
                 <button id="add-manual" class="btn btn-success">Add Student</button>
             </div>
@@ -61,8 +60,10 @@
             </div>
 
             <div style="margin-top: 20px; text-align: center;">
-                <button id="export-btn" class="btn" disabled>Export Data</button>
+                <!-- <button id="export-btn" class="btn" disabled>Export Data</button> -->
+                <button id="record-btn" class="btn">record Data</button>
                 <button id="clear-btn" class="btn btn-danger" disabled>Clear All</button>
+                <button onclick="window.location.href='/dashboard/'" class="btn btn-primary">Dashboard</button>
             </div>
         </div>
     </div>
