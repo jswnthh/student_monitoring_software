@@ -149,11 +149,29 @@ class StudentScanner {
                 inputStream: {
                     name: "Live",
                     type: "LiveStream",
-                    target: document.querySelector("#video"),
+                    target: document.querySelector(".video"),
                     constraints: {
-                        width: isSamsungDevice ? 640 : 800,
-                        height: isSamsungDevice ? 480 : 600,
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 },
                         facingMode: "environment"
+                    }
+                },
+                locator: {
+                    patchSize: "medium",  // Try "x-small" or "small" for small barcodes
+                    halfSample: true,
+                    debug: {
+                        showCanvas: true,
+                        showPatches: true,
+                        showFoundPatches: true,
+                        showSkeleton: true,
+                        showLabels: true,
+                        showPatchLabels: true,
+                        showRemainingPatchLabels: true,
+                        boxFromPatches: {
+                            showTransformed: true,
+                            showTransformedBox: true,
+                            showBB: true
+                        }
                     }
                 },
                 decoder: {
@@ -166,18 +184,8 @@ class StudentScanner {
                     ]
                 },
                 locate: true,
-                locator: {
-                    halfSample: isSamsungDevice,
-                    patchSize: isSamsungDevice ? "large" : "medium"
-                },
-                numOfWorkers: 4,
-                frequency: 10,
-                debug: {
-                    drawBoundingBox: true,
-                    showFrequency: true,
-                    drawScanline: true,
-                    showPattern: true
-                }
+                numOfWorkers: 2,
+                frequency: 10
             };
 
             Quagga.init(quaggaConfig, (err) => {

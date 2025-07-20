@@ -1,10 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600&display=swap');
 
 * {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: 'Lexend', sans-serif;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Lexend', sans-serif;
 }
 
 :root {
@@ -43,13 +43,26 @@ body {
     padding: 1.5rem 1rem;
 }
 
-#video {
+
+.video {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
     border-radius: 16px;
 }
+
+canvas.drawingBuffer,
+canvas.drawingOverlay {
+  position: absolute !important;
+  top: 0;
+  left: 0;
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 999;
+  pointer-events: none;
+}
+
 
 .controls {
     display: flex;
@@ -305,10 +318,12 @@ body {
     top: 20px;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 10001 !important; /* Higher than any other element */
+    z-index: 10001 !important;
+    /* Higher than any other element */
     width: auto;
     max-width: 90%;
-    pointer-events: none; /* Don't interfere with scanning */
+    pointer-events: none;
+    /* Don't interfere with scanning */
 }
 
 .scanner-overlay-fullscreen {
@@ -443,9 +458,12 @@ body {
     display: flex;
     flex-direction: column;
     transition: box-shadow 0.2s;
-    align-items: stretch; /* was: flex-start */
-    height: auto;         /* Ensure it grows */
-    overflow: visible;    /* So hidden children can expand */
+    align-items: stretch;
+    /* was: flex-start */
+    height: auto;
+    /* Ensure it grows */
+    overflow: visible;
+    /* So hidden children can expand */
 }
 
 
@@ -625,7 +643,7 @@ body {
     color: #222;
     border: none;
     border-radius: 50%;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     cursor: pointer;
     transition: background 0.2s, box-shadow 0.2s;
     text-decoration: none;
