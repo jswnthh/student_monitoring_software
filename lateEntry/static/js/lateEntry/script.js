@@ -77,7 +77,8 @@ class StudentScanner {
                 video: {
                     facingMode: 'environment',
                     width: { ideal: 1280 },
-                    height: { ideal: 720 }
+                    height: { ideal: 720 },
+                    zoom: { ideal: 3.0 },
                 },
                 audio: false
             };
@@ -95,7 +96,7 @@ class StudentScanner {
                 this.stream = await navigator.mediaDevices.getUserMedia(constraints);
             } catch (err) {
                 console.log('Primary constraints failed, trying fallback...');
-                // Fallback for Samsung devices
+                // Fallback constraints
                 const fallbackConstraints = {
                     video: {
                         facingMode: 'environment',
@@ -109,10 +110,21 @@ class StudentScanner {
 
             this.video.srcObject = this.stream;
 
-            // Wait for video to be ready
+            // Wait for video to load and play
             await new Promise((resolve) => {
                 this.video.onloadedmetadata = () => {
                     this.video.play();
+
+                    // ✅ Request fullscreen on scanner container
+                    const scannerContainer = document.querySelector('.scanner-container');
+                    if (scannerContainer.requestFullscreen) {
+                        scannerContainer.requestFullscreen();
+                    } else if (scannerContainer.webkitRequestFullscreen) { // Safari
+                        scannerContainer.webkitRequestFullscreen();
+                    } else if (scannerContainer.msRequestFullscreen) { // IE11
+                        scannerContainer.msRequestFullscreen();
+                    }
+
                     resolve();
                 };
             });
@@ -121,7 +133,7 @@ class StudentScanner {
             const laserLine = document.querySelector('.laser-line');
             if (laserLine) laserLine.style.display = 'block';
 
-            // Configure QuaggaJS with Samsung-optimized settings
+            // Configure QuaggaJS
             const quaggaConfig = {
                 inputStream: {
                     name: "Live",
@@ -144,7 +156,7 @@ class StudentScanner {
                 },
                 locate: true,
                 locator: {
-                    halfSample: this.isSamsungDevice ? true : false,
+                    halfSample: this.isSamsungDevice,
                     patchSize: this.isSamsungDevice ? "large" : "medium"
                 },
                 numOfWorkers: this.isSamsungDevice ? 1 : 2,
@@ -171,8 +183,6 @@ class StudentScanner {
             Quagga.onDetected((data) => {
                 const code = data.codeResult.code;
                 const now = Date.now();
-
-                // Debounce for Samsung devices (longer delay)
                 const debounceTime = this.isSamsungDevice ? 3000 : 2000;
 
                 if (code === this.lastScannedCode && (now - this.lastScanTime) < debounceTime) {
@@ -340,11 +350,11 @@ class StudentScanner {
 
 
 
-updateUI() {
-    this.studentCount.textContent = this.students.length;
+    updateUI() {
+        this.studentCount.textContent = this.students.length;
 
-    if (this.students.length === 0) {
-        this.studentList.innerHTML = `
+        if (this.students.length === 0) {
+            this.studentList.innerHTML = `
                 <div class="empty-state">
                     <svg viewBox="0 0 24 24" fill="currentColor">
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
@@ -353,10 +363,10 @@ updateUI() {
                     <p>Start scanning or add students manually</p>
                 </div>
             `;
-        // this.exportBtn.disabled = true;
-        this.clearBtn.disabled = true;
-    } else {
-        this.studentList.innerHTML = this.students.map((student, index) => `
+            // this.exportBtn.disabled = true;
+            this.clearBtn.disabled = true;
+        } else {
+            this.studentList.innerHTML = this.students.map((student, index) => `
                 <div class="student-item">
                     <div class="student-info">
                         <div class="student-name">${student.name}</div>
@@ -366,46 +376,46 @@ updateUI() {
                     <button class="delete-btn" onclick="scanner.removeStudent(${index})">🗑</button>
                 </div>
             `).join('');
-        // this.exportBtn.disabled = false;
-        this.clearBtn.disabled = false;
+            // this.exportBtn.disabled = false;
+            this.clearBtn.disabled = false;
+        }
     }
-}
 
-// exportData() {
-//     const csvContent = "data:text/csv;charset=utf-8,"
-//     "Roll No,Name,Date,Time\n"
-//         + this.students.map(s => `${s.roll_no},"${s.name}",${s.timestamp.split('T')[0]},${s.time}`).join('\n');
-//     const encodedUri = encodeURI(csvContent);
-//     const link = document.createElement("a");
-//     link.setAttribute("href", encodedUri);
-//     link.setAttribute("download", `student_attendance_${new Date().toISOString().split('T')[0]}.csv`);
-//     document.body.appendChild(link);
-//     link.click();
-//     document.body.removeChild(link);
-//     this.showStatus('Data exported successfully!', 'success');
-// }
+    // exportData() {
+    //     const csvContent = "data:text/csv;charset=utf-8,"
+    //     "Roll No,Name,Date,Time\n"
+    //         + this.students.map(s => `${s.roll_no},"${s.name}",${s.timestamp.split('T')[0]},${s.time}`).join('\n');
+    //     const encodedUri = encodeURI(csvContent);
+    //     const link = document.createElement("a");
+    //     link.setAttribute("href", encodedUri);
+    //     link.setAttribute("download", `student_attendance_${new Date().toISOString().split('T')[0]}.csv`);
+    //     document.body.appendChild(link);
+    //     link.click();
+    //     document.body.removeChild(link);
+    //     this.showStatus('Data exported successfully!', 'success');
+    // }
 
-clearData() {
-    if (confirm('Are you sure you want to clear all recorded students?')) {
-        this.students = [];
-        this.saveData();
-        this.updateUI();
-        this.showStatus('All data cleared', 'info');
+    clearData() {
+        if (confirm('Are you sure you want to clear all recorded students?')) {
+            this.students = [];
+            this.saveData();
+            this.updateUI();
+            this.showStatus('All data cleared', 'info');
+        }
     }
-}
 
-saveData() {
-    window.studentData = {
-        students: this.students,
-        lastUpdated: new Date().toISOString()
-    };
-}
-
-loadData() {
-    if (window.studentData && window.studentData.students) {
-        this.students = window.studentData.students;
+    saveData() {
+        window.studentData = {
+            students: this.students,
+            lastUpdated: new Date().toISOString()
+        };
     }
-}
+
+    loadData() {
+        if (window.studentData && window.studentData.students) {
+            this.students = window.studentData.students;
+        }
+    }
 
 }
 

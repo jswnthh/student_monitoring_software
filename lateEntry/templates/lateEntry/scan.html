@@ -11,6 +11,10 @@
     <link rel="manifest" href="{% static 'manifest.json' %}">
     <meta name="theme-color" content="#000000" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Winky+Rough:ital,wght@0,300..900;1,300..900&display=swap"
+        rel="stylesheet">
 
 </head>
 
@@ -18,12 +22,15 @@
     <div class="container">
         <div class="scanner-section">
             <div id="status-message"></div>
-            <div class="scanner-container">
+            <div style="display: flex; justify-content: center; margin-top: 20px; margin-bottom: 20px;">
+                <button onclick="window.location.href='/dashboard/'" class="btn btn-primary">Dashboard</button>
+            </div>
+            <!-- <div class="scanner-container">
                 <video id="video" autoplay muted playsinline></video>
                 <div class="scanner-overlay">
                     <div class="laser-line" style="display: none;"></div>
                 </div>
-            </div>
+            </div> -->
 
             <div class="controls">
                 <button id="start-btn" class="font-size-large btn">Start Scanner</button>
@@ -31,7 +38,7 @@
             </div>
 
             <div class="manual-input">
-                 <h3 class="font-large" style="margin-bottom: 15px;">Manual Entry</h3>
+                <h3 class="font-large" style="margin-bottom: 15px;">Manual Entry</h3>
                 <div class="input-group">
                     <input type="text" id="student-roll" placeholder="Student Roll No">
                 </div>
@@ -43,7 +50,7 @@
             <div class="students-header">
                 <h2 class="font-large">Recorded Students</h2>
                 <div class="students-count">
-                    <span id="student-count" class="font-large">0</span> 
+                    <span id="student-count" class="font-large">0</span>
                     <h2 class="font-large">students</h2>
                 </div>
             </div>
@@ -63,7 +70,6 @@
                 <!-- <button id="export-btn" class="btn" disabled>Export Data</button> -->
                 <button id="record-btn" class="btn">record Data</button>
                 <button id="clear-btn" class="btn btn-danger" disabled>Clear All</button>
-                <button onclick="window.location.href='/dashboard/'" class="btn btn-primary">Dashboard</button>
             </div>
         </div>
     </div>
