@@ -59,9 +59,15 @@ class StudentScanner {
         }, 3000);
     }
 
+    /**
+     * Asynchronously retrieves the appropriate camera constraints for video input,
+     * with special handling for Samsung devices to ensure better compatibility.
+     *  A Promise resolving to a set of media constraints
+     * for the user's camera, tailored for Samsung and non-Samsung devices.
+     */
     async getCameraConstraints() {
         if (this.isSamsungDevice) {
-            // Samsung-specific constraints
+            // Samsung-specific constraints to avoid camera compatibility issues
             return {
                 video: {
                     facingMode: { exact: 'environment' },
@@ -72,31 +78,44 @@ class StudentScanner {
                 audio: false
             };
         } else {
-            // Standard constraints for other devices
+            // Default constraints for most other devices
             return {
                 video: {
                     facingMode: 'environment',
                     width: { ideal: 1280 },
                     height: { ideal: 720 },
-                    zoom: { ideal: 3.0 },
+                    zoom: { ideal: 3.0 }
                 },
                 audio: false
             };
         }
     }
 
+    /**
+     * Initializes and starts the barcode scanner using the device camera.
+     * 
+     * - Requests camera access using optimized constraints based on device type (e.g., Samsung).
+     * - Falls back to basic constraints if initial access fails.
+     * - Launches the scanner UI, enters fullscreen, displays laser line.
+     * - Configures and starts QuaggaJS for barcode detection.
+     * - Handles barcode detection with debounce logic to avoid duplicates.
+     * 
+     * Resolves when scanner is successfully started or exits on error.
+     */
     async startScanner() {
         try {
             this.showStatus('Starting camera...', 'info');
 
+            // Get camera constraints based on device
             const constraints = await this.getCameraConstraints();
 
-            // Try primary constraints first
             try {
+                // Try primary constraints
                 this.stream = await navigator.mediaDevices.getUserMedia(constraints);
             } catch (err) {
                 console.log('Primary constraints failed, trying fallback...');
-                // Fallback constraints
+
+                // Fallback camera constraints
                 const fallbackConstraints = {
                     video: {
                         facingMode: 'environment',
@@ -105,43 +124,45 @@ class StudentScanner {
                     },
                     audio: false
                 };
+
                 this.stream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
             }
 
+            // Assign camera stream to video element
             this.video.srcObject = this.stream;
 
-            // Wait for video to load and play
+            // Wait for video metadata to load and request fullscreen
             await new Promise((resolve) => {
                 this.video.onloadedmetadata = () => {
                     this.video.play();
 
-                    // ✅ Request fullscreen on scanner container
                     const scannerContainer = document.querySelector('.scanner-container');
                     if (scannerContainer.requestFullscreen) {
                         scannerContainer.requestFullscreen();
-                    } else if (scannerContainer.webkitRequestFullscreen) { // Safari
-                        scannerContainer.webkitRequestFullscreen();
-                    } else if (scannerContainer.msRequestFullscreen) { // IE11
-                        scannerContainer.msRequestFullscreen();
+                    } else if (scannerContainer.webkitRequestFullscreen) {
+                        scannerContainer.webkitRequestFullscreen(); // Safari
+                    } else if (scannerContainer.msRequestFullscreen) {
+                        scannerContainer.msRequestFullscreen(); // IE11
                     }
 
                     resolve();
                 };
             });
 
-            // Show laser line
+            // Display laser line (UI element)
             const laserLine = document.querySelector('.laser-line');
             if (laserLine) laserLine.style.display = 'block';
 
-            // Configure QuaggaJS
+            const isSamsungDevice = /Samsung/.test(navigator.userAgent);
+
             const quaggaConfig = {
                 inputStream: {
                     name: "Live",
                     type: "LiveStream",
-                    target: this.video,
+                    target: document.querySelector("#video") || document.querySelector(".scanner-container"),
                     constraints: {
-                        width: this.isSamsungDevice ? 640 : 800,
-                        height: this.isSamsungDevice ? 480 : 600,
+                        width: isSamsungDevice ? 640 : 800,
+                        height: isSamsungDevice ? 480 : 600,
                         facingMode: "environment"
                     }
                 },
@@ -156,14 +177,15 @@ class StudentScanner {
                 },
                 locate: true,
                 locator: {
-                    halfSample: this.isSamsungDevice,
-                    patchSize: this.isSamsungDevice ? "large" : "medium"
+                    halfSample: isSamsungDevice,
+                    patchSize: isSamsungDevice ? "large" : "medium"
                 },
-                numOfWorkers: this.isSamsungDevice ? 1 : 2,
-                frequency: this.isSamsungDevice ? 5 : 10,
-                debug: false
+                numOfWorkers: isSamsungDevice ? 1 : 2,
+                frequency: isSamsungDevice ? 5 : 10,
+                debug: true
             };
 
+            // Initialize QuaggaJS
             Quagga.init(quaggaConfig, (err) => {
                 if (err) {
                     console.error('QuaggaJS init error:', err);
@@ -179,7 +201,7 @@ class StudentScanner {
                 this.showStatus('Scanner started successfully!', 'success');
             });
 
-            // Handle barcode detection
+            // Handle barcode detection with debounce
             Quagga.onDetected((data) => {
                 const code = data.codeResult.code;
                 const now = Date.now();
