@@ -111,7 +111,7 @@ class StudentScanner {
 
             // Show container
             container.style.display = "block";
-            
+
 
 
             // Get camera constraints based on device
@@ -257,9 +257,14 @@ class StudentScanner {
             this.startBtn.disabled = false;
             this.stopBtn.disabled = true;
 
-            // FIX: Get the container element here
+            // Hide overlay
             const container = document.querySelector(".scanner-overlay-fullscreen");
             if (container) container.style.display = "none";
+
+            // Exit fullscreen if active
+            if (document.fullscreenElement) {
+                document.exitFullscreen();
+            }
 
             // Hide laser line
             const laserLine = document.querySelector('.laser-line');
