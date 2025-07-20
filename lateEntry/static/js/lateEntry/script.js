@@ -16,7 +16,6 @@ class StudentScanner {
 
         this.initElements();
         this.loadData();
-        // this.students.push(student);
         this.saveData();
         this.updateUI();
         this.bindEvents();
@@ -33,13 +32,13 @@ class StudentScanner {
         this.stopBtn = document.getElementById('stop-btn');
         this.studentList = document.getElementById('student-list');
         this.studentCount = document.getElementById('student-count');
-        this.statusMessage = document.getElementById('status-message');
+        // Fixed selector - was missing #
+        this.statusMessage = document.getElementById('status-message-main');
+        this.statusMessageOverlay = document.getElementById('status-message-overlay');
         this.studentRollInput = document.getElementById('student-roll');
         this.studentNameInput = document.getElementById('student-name');
         this.addManualBtn = document.getElementById('add-manual');
-        // this.exportBtn = document.getElementById('export-btn');
         this.clearBtn = document.getElementById('clear-btn');
-        // console.log('Dropdown button element:', this.sortDropdownBtn);
         this.recordBtn = document.getElementById('record-btn');
     }
 
@@ -47,27 +46,34 @@ class StudentScanner {
         this.startBtn.addEventListener('click', () => this.startScanner());
         this.stopBtn.addEventListener('click', () => this.stopScanner());
         this.addManualBtn.addEventListener('click', () => this.addManualStudent());
-        // this.exportBtn.addEventListener('click', () => this.exportData());
         this.clearBtn.addEventListener('click', () => this.clearData());
         this.recordBtn.addEventListener('click', () => this.recordAllLateEntries());
     }
 
     showStatus(message, type = 'info') {
-        this.statusMessage.innerHTML = `<div class="status-message status-${type}">${message}</div>`;
-        setTimeout(() => {
-            this.statusMessage.innerHTML = '';
-        }, 3000);
+        if (this.statusMessage) {
+            this.statusMessage.innerHTML = `<div class="status-message status-${type}">${message}</div>`;
+            setTimeout(() => {
+                this.statusMessage.innerHTML = '';
+            }, 3000);
+        }
     }
 
-    /**
-     * Asynchronously retrieves the appropriate camera constraints for video input,
-     * with special handling for Samsung devices to ensure better compatibility.
-     *  A Promise resolving to a set of media constraints
-     * for the user's camera, tailored for Samsung and non-Samsung devices.
-     */
+    showStatusOverlay(message, type = 'info') {
+        if (this.statusMessageOverlay) {
+            this.statusMessageOverlay.innerHTML = `<div class="status-message status-${type}">${message}</div>`;
+            // Make sure it's visible and on top
+            this.statusMessageOverlay.style.display = 'block';
+            this.statusMessageOverlay.style.zIndex = '10000';
+            setTimeout(() => {
+                this.statusMessageOverlay.innerHTML = '';
+                this.statusMessageOverlay.style.display = 'none';
+            }, 3000);
+        }
+    }
+
     async getCameraConstraints() {
         if (this.isSamsungDevice) {
-            // Samsung-specific constraints to avoid camera compatibility issues
             return {
                 video: {
                     facingMode: { exact: 'environment' },
@@ -78,7 +84,6 @@ class StudentScanner {
                 audio: false
             };
         } else {
-            // Default constraints for most other devices
             return {
                 video: {
                     facingMode: 'environment',
@@ -91,39 +96,20 @@ class StudentScanner {
         }
     }
 
-    /**
-     * Initializes and starts the barcode scanner using the device camera.
-     * 
-     * - Requests camera access using optimized constraints based on device type (e.g., Samsung).
-     * - Falls back to basic constraints if initial access fails.
-     * - Launches the scanner UI, enters fullscreen, displays laser line.
-     * - Configures and starts QuaggaJS for barcode detection.
-     * - Handles barcode detection with debounce logic to avoid duplicates.
-     * 
-     * Resolves when scanner is successfully started or exits on error.
-     */
     async startScanner() {
         try {
-            this.showStatus('Starting camera...', 'info');
+            // Show status in overlay immediately when scanner starts
+            this.showStatusOverlay('Starting camera...', 'info');
 
             const container = document.querySelector(".scanner-overlay-fullscreen");
-            // const stopBtn = document.getElementById("stop-btn");
-
-            // Show container
             container.style.display = "block";
 
-
-
-            // Get camera constraints based on device
             const constraints = await this.getCameraConstraints();
 
             try {
-                // Try primary constraints
                 this.stream = await navigator.mediaDevices.getUserMedia(constraints);
             } catch (err) {
                 console.log('Primary constraints failed, trying fallback...');
-
-                // Fallback camera constraints
                 const fallbackConstraints = {
                     video: {
                         facingMode: 'environment',
@@ -132,14 +118,11 @@ class StudentScanner {
                     },
                     audio: false
                 };
-
                 this.stream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
             }
 
-            // Assign camera stream to video element
             this.video.srcObject = this.stream;
 
-            // Wait for video metadata to load and request fullscreen
             await new Promise((resolve) => {
                 this.video.onloadedmetadata = () => {
                     this.video.play();
@@ -148,16 +131,15 @@ class StudentScanner {
                     if (scannerContainer.requestFullscreen) {
                         scannerContainer.requestFullscreen();
                     } else if (scannerContainer.webkitRequestFullscreen) {
-                        scannerContainer.webkitRequestFullscreen(); // Safari
+                        scannerContainer.webkitRequestFullscreen();
                     } else if (scannerContainer.msRequestFullscreen) {
-                        scannerContainer.msRequestFullscreen(); // IE11
+                        scannerContainer.msRequestFullscreen();
                     }
 
                     resolve();
                 };
             });
 
-            // Display laser line (UI element)
             const laserLine = document.querySelector('.laser-line');
             if (laserLine) laserLine.style.display = 'block';
 
@@ -198,11 +180,10 @@ class StudentScanner {
                 }
             };
 
-            // Initialize QuaggaJS
             Quagga.init(quaggaConfig, (err) => {
                 if (err) {
                     console.error('QuaggaJS init error:', err);
-                    this.showStatus('Error starting scanner: ' + err.message, 'error');
+                    this.showStatusOverlay('Error starting scanner: ' + err.message, 'error');
                     this.cleanupCamera();
                     return;
                 }
@@ -211,12 +192,12 @@ class StudentScanner {
                 this.isScanning = true;
                 this.startBtn.disabled = true;
                 this.stopBtn.disabled = false;
-                this.showStatus('Scanner started successfully!', 'success');
+                this.showStatusOverlay('Scanner started successfully! Point camera at barcode', 'success');
             });
 
-            // Handle barcode detection with debounce
             Quagga.onDetected((data) => {
                 const code = data.codeResult.code;
+                this.showStatusOverlay(`Detected: ${code}`, 'info');
                 const now = Date.now();
                 const debounceTime = this.isSamsungDevice ? 3000 : 2000;
 
@@ -231,7 +212,7 @@ class StudentScanner {
 
         } catch (error) {
             console.error('Camera access error:', error);
-            this.showStatus('Camera access denied or not available. Please check permissions.', 'error');
+            this.showStatusOverlay('Camera access denied or not available. Please check permissions.', 'error');
             this.cleanupCamera();
         }
     }
@@ -257,16 +238,13 @@ class StudentScanner {
             this.startBtn.disabled = false;
             this.stopBtn.disabled = true;
 
-            // Hide overlay
             const container = document.querySelector(".scanner-overlay-fullscreen");
             if (container) container.style.display = "none";
 
-            // Exit fullscreen if active
             if (document.fullscreenElement) {
                 document.exitFullscreen();
             }
 
-            // Hide laser line
             const laserLine = document.querySelector('.laser-line');
             if (laserLine) laserLine.style.display = 'none';
 
@@ -276,9 +254,8 @@ class StudentScanner {
 
     processScannedCode(code) {
         console.log("Scanned barcode:", code);
-        this.showStatus(`Scanning: ${code}`, 'info');
+        this.showStatusOverlay(`Processing: ${code}`, 'info');
 
-        // Add visual feedback for Samsung devices
         if (this.isSamsungDevice) {
             navigator.vibrate && navigator.vibrate(100);
         }
@@ -287,23 +264,23 @@ class StudentScanner {
             .then(response => response.json())
             .then(data => {
                 if (!data.success) {
-                    this.showStatus("❌ Student not found in database!", 'error');
+                    this.showStatusOverlay("❌ Student not found in database!", 'error');
                     return;
                 }
 
                 const student = data.student;
                 const existing = this.students.find(s => s.roll_no === student.roll_no);
                 if (existing) {
-                    this.showStatus(`Student ${student.name} already recorded!`, 'info');
+                    this.showStatusOverlay(`Student ${student.name} already recorded!`, 'info');
                     return;
                 }
 
                 this.addStudent(student.roll_no, student.name);
-                this.showStatus(`✅ Added: ${student.name} (${student.roll_no})`, 'success');
+                this.showStatusOverlay(`✅ Added: ${student.name} (${student.roll_no})`, 'success');
             })
             .catch(err => {
                 console.error("Fetch error:", err);
-                this.showStatus("⚠️ Error fetching student data!", 'error');
+                this.showStatusOverlay("⚠️ Error fetching student data!", 'error');
             });
     }
 
@@ -320,7 +297,6 @@ class StudentScanner {
         this.updateUI();
     }
 
-
     async addManualStudent() {
         const roll_no = this.studentRollInput.value.trim();
         if (!roll_no) {
@@ -328,22 +304,20 @@ class StudentScanner {
             return;
         }
 
-        //Check with backend if student exists
         const response = await fetch(`/api/check-student/?roll_no=${encodeURIComponent(roll_no)}`);
         const data = await response.json();
-
 
         if (!data.exists) {
             this.showStatus('Student does not exist in database!', 'error');
             return;
         }
-        //Check if already in local list
+
         const existing = this.students.find(s => s.roll_no === roll_no);
         if (existing) {
             this.showStatus('Student with this Roll No already exists locally!', 'error');
             return;
         }
-        //Proceed to add
+
         this.addStudent(roll_no, data.name);
         this.studentRollInput.value = '';
         this.showStatus(`✅ Added: ${data.name}`, 'success');
@@ -364,11 +338,12 @@ class StudentScanner {
             this.showStatus("No students to record!", "error");
             return;
         }
+
         const response = await fetch("/api/record-late-entries/", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "X-CSRFToken": getCSRFToken(), // ⬅️ CSRF token is required by Django
+                "X-CSRFToken": getCSRFToken(),
             },
             body: JSON.stringify({
                 roll_nos: this.students.map(s => s.roll_no)
@@ -384,15 +359,11 @@ class StudentScanner {
             this.showStatus("⚠️ Some error occurred!", "error");
         }
 
-
         this.students = [];
         this.saveData();
         this.updateUI();
         this.showStatus('All data cleared', 'info');
-    };
-
-
-
+    }
 
     updateUI() {
         this.studentCount.textContent = this.students.length;
@@ -407,7 +378,6 @@ class StudentScanner {
                     <p>Start scanning or add students manually</p>
                 </div>
             `;
-            // this.exportBtn.disabled = true;
             this.clearBtn.disabled = true;
         } else {
             this.studentList.innerHTML = this.students.map((student, index) => `
@@ -420,24 +390,9 @@ class StudentScanner {
                     <button class="delete-btn" onclick="scanner.removeStudent(${index})">🗑</button>
                 </div>
             `).join('');
-            // this.exportBtn.disabled = false;
             this.clearBtn.disabled = false;
         }
     }
-
-    // exportData() {
-    //     const csvContent = "data:text/csv;charset=utf-8,"
-    //     "Roll No,Name,Date,Time\n"
-    //         + this.students.map(s => `${s.roll_no},"${s.name}",${s.timestamp.split('T')[0]},${s.time}`).join('\n');
-    //     const encodedUri = encodeURI(csvContent);
-    //     const link = document.createElement("a");
-    //     link.setAttribute("href", encodedUri);
-    //     link.setAttribute("download", `student_attendance_${new Date().toISOString().split('T')[0]}.csv`);
-    //     document.body.appendChild(link);
-    //     link.click();
-    //     document.body.removeChild(link);
-    //     this.showStatus('Data exported successfully!', 'success');
-    // }
 
     clearData() {
         if (confirm('Are you sure you want to clear all recorded students?')) {
@@ -460,11 +415,9 @@ class StudentScanner {
             this.students = window.studentData.students;
         }
     }
-
 }
 
 let scanner;
 document.addEventListener('DOMContentLoaded', function () {
     scanner = new StudentScanner();
 });
-
