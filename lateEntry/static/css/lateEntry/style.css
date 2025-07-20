@@ -71,15 +71,15 @@ body {
 }
 
 /* .scanner-container {
+    display: none;
     position: relative;
-    background: var(--primary-black);
-    border-radius: 16px;
+    width: 100vw;
+    height: 100vh;
     overflow: hidden;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 8px 32px var(--shadow-heavy);
+    background: black;
 } */
 
-.scanner-container:fullscreen {
+/* .scanner-container:fullscreen {
     width: 100vw;
     height: 100vh;
     background-color: black;
@@ -90,34 +90,34 @@ body {
     top: 0;
     left: 0;
     z-index: 9999;
-}
+} */
 
-.scanner-container video {
+/* .scanner-container video {
     width: 100%;
-    height: auto;
-    max-height: 100%;
+    height: 100%;
     object-fit: cover;
-}
+} */
 
-
-/* #video {
+#video {
     width: 100%;
     height: 300px;
     object-fit: cover;
     display: block;
     border-radius: 16px;
-} */
+}
 
-.scanner-overlay {
-    position: absolute;
+.scanner-overlay-fullscreen {
+    position: fixed;
     top: 0;
     left: 0;
-    right: 0;
-    bottom: 0;
-    pointer-events: none;
+    width: 100vw;
+    height: 100vh;
+    background: black;
+    z-index: 9999;
     display: flex;
-    align-items: center;
+    flex-direction: column;
     justify-content: center;
+    align-items: center;
 }
 
 .laser-line {
@@ -206,11 +206,11 @@ body {
     box-shadow: 0 4px 16px var(--shadow);
 }
 
-.btn-primary:hover {
+/* .btn-primary:hover {
     background: var(--dark-grey);
     transform: translateY(-2px);
     box-shadow: 0 6px 20px var(--shadow-heavy);
-}
+} */
 
 .btn-dashboard {
     background: var(--medium-grey);
@@ -219,11 +219,11 @@ body {
     margin: 0.3rem;
 }
 
-.btn-dashboard:hover {
+/* .btn-dashboard:hover {
     background: var(--medium-grey);
     transform: translateY(-2px);
     box-shadow: 0 6px 20px var(--shadow-heavy);
-}
+} */
 
 .btn-danger {
     background: var(--medium-grey);
@@ -231,10 +231,10 @@ body {
     box-shadow: 0 4px 16px var(--shadow);
 }
 
-.btn-danger:hover {
+/* .btn-danger:hover {
     background: var(--light-grey);
     transform: translateY(-2px);
-}
+} */
 
 .btn:disabled {
     opacity: 0.5;
@@ -354,9 +354,9 @@ body {
     animation: slideIn 0.3s ease;
 }
 
-.student-item:hover {
+/* .student-item:hover {
     background: var(--accent-grey);
-}
+} */
 
 .student-item:last-child {
     border-bottom: none;
@@ -396,10 +396,10 @@ body {
     font-size: 1rem;
 }
 
-.delete-btn:hover {
+/* .delete-btn:hover {
     background: var(--light-grey);
     transform: scale(1.1);
-}
+} */
 
 .empty-state {
     text-align: center;
@@ -437,12 +437,13 @@ body {
 
 /* Status Messages */
 #status-message {
-    position: fixed;
-    top: 80px;
-    left: 1rem;
-    right: 1rem;
-    z-index: 1000;
-    pointer-events: none;
+    position: absolute;
+    top: 20px;
+    width: 90%;
+    text-align: center;
+    font-size: 1rem;
+    color: #00ff99;
+    z-index: 10;
 }
 
 .status-message {
@@ -466,6 +467,20 @@ body {
 
 .status-info {
     background: var(--light-grey);
+}
+
+#stop-btn {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    padding: 10px 20px;
+    font-size: 1rem;
+    background-color: #333333;
+    color: white;
+    border: none;
+    border-radius: 8px;
 }
 
 @keyframes statusSlide {
@@ -519,9 +534,9 @@ body {
     overflow: visible;    /* So hidden children can expand */
 }
 
-.student-card:hover {
+/* .student-card:hover {
     box-shadow: 0 8px 24px var(--shadow-heavy);
-}
+} */
 
 .student-card .student-name {
     font-size: 1.1rem;

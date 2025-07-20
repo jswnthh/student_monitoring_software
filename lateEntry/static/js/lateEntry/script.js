@@ -106,6 +106,14 @@ class StudentScanner {
         try {
             this.showStatus('Starting camera...', 'info');
 
+            const container = document.querySelector(".scanner-overlay-fullscreen");
+            // const stopBtn = document.getElementById("stop-btn");
+
+            // Show container
+            container.style.display = "block";
+            
+
+
             // Get camera constraints based on device
             const constraints = await this.getCameraConstraints();
 
@@ -136,7 +144,7 @@ class StudentScanner {
                 this.video.onloadedmetadata = () => {
                     this.video.play();
 
-                    const scannerContainer = document.querySelector('.scanner-container');
+                    const scannerContainer = document.querySelector('.scanner-overlay-fullscreen');
                     if (scannerContainer.requestFullscreen) {
                         scannerContainer.requestFullscreen();
                     } else if (scannerContainer.webkitRequestFullscreen) {
@@ -159,7 +167,7 @@ class StudentScanner {
                 inputStream: {
                     name: "Live",
                     type: "LiveStream",
-                    target: document.querySelector("#video") || document.querySelector(".scanner-container"),
+                    target: document.querySelector("#video"),
                     constraints: {
                         width: isSamsungDevice ? 640 : 800,
                         height: isSamsungDevice ? 480 : 600,
@@ -180,9 +188,14 @@ class StudentScanner {
                     halfSample: isSamsungDevice,
                     patchSize: isSamsungDevice ? "large" : "medium"
                 },
-                numOfWorkers: isSamsungDevice ? 1 : 2,
-                frequency: isSamsungDevice ? 5 : 10,
-                debug: true
+                numOfWorkers: 4,
+                frequency: 10,
+                debug: {
+                    drawBoundingBox: true,
+                    showFrequency: true,
+                    drawScanline: true,
+                    showPattern: true
+                }
             };
 
             // Initialize QuaggaJS
@@ -243,6 +256,10 @@ class StudentScanner {
             this.isScanning = false;
             this.startBtn.disabled = false;
             this.stopBtn.disabled = true;
+
+            // FIX: Get the container element here
+            const container = document.querySelector(".scanner-overlay-fullscreen");
+            if (container) container.style.display = "none";
 
             // Hide laser line
             const laserLine = document.querySelector('.laser-line');

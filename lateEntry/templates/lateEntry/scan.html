@@ -25,16 +25,13 @@
             <div style="display: flex; justify-content: center; margin-top: 20px; margin-bottom: 20px;">
                 <button onclick="window.location.href='/dashboard/'" class="btn btn-primary">Dashboard</button>
             </div>
-            <div class="scanner-container">
+            <div id="scanner-overlay" class="scanner-overlay-fullscreen" style="display: none;">
                 <video id="video" autoplay muted playsinline></video>
-                <div class="scanner-overlay">
-                    <div class="laser-line" style="display: none;"></div>
-                </div>
+                <button id="stop-btn" class="btn btn-danger" disabled>Stop Scanner</button>
+                <div id="status-message"></div>
             </div>
-
             <div class="controls">
                 <button id="start-btn" class="font-size-large btn">Start Scanner</button>
-                <button id="stop-btn" class="btn btn-danger" disabled>Stop Scanner</button>
             </div>
 
             <div class="manual-input">
