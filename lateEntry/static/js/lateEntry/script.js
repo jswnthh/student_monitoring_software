@@ -157,7 +157,7 @@ class StudentScanner {
                     }
                 },
                 locator: {
-                    patchSize: "medium",  // Try "x-small" or "small" for small barcodes
+                    patchSize: "medium", 
                     halfSample: true,
                     debug: {
                         showCanvas: true,
