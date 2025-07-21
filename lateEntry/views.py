@@ -77,11 +77,7 @@ def record_late_entries(request):
     return JsonResponse({'success': False, 'error': 'Invalid method'})
 
 def recorded_students_api(request):
-    from datetime import date
-    today = date.today()
-
-    summaries = LateSummary.objects.filter(date=today).select_related('student')
-
+    summaries = LateSummary.objects.select_related('student')
     data = []
     for s in summaries:
         data.append({
